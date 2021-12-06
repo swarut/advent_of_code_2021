@@ -1,10 +1,9 @@
 defmodule Day4 do
   def get_input do
-    {:ok, result} = File.read("day4_test.txt")
+    {:ok, result} = File.read("day4.txt")
 
     [draws | rest] = String.split(result, "\n", trim: true)
-
-    IO.puts("draws = #{inspect draws}")
+    draws = draws |> String.split(",", trim: true) |> Enum.map(fn x -> String.to_integer(x) end)
 
     boards = rest
     |> Enum.chunk_every(5)
@@ -17,12 +16,8 @@ defmodule Day4 do
     |> Enum.map(fn board ->
       transform_board(board)
     end)
-    IO.puts("boards = #{inspect boards}\n\n")
-    b = hd(boards)
 
-    c = draw(b, 7)
-    IO.puts(inspect(c, charlists: :as_lists))
-    c
+    {draws, boards}
   end
 
   def transform_board(board) do
@@ -41,8 +36,11 @@ defmodule Day4 do
       lookup: row_lookup,
       r: %{ 0 => [], 1 => [], 2 => [], 3 => [], 4 => []},
       c: %{ 0 => [], 1 => [], 2 => [], 3 => [], 4 => []},
-      total_moves: 0,
-      draws: []
+      total_draws: 0,
+      completed: false,
+      draws: [],
+      hits: [],
+      sum: row_lookup |> Map.keys |> Enum.sum
     }
   end
 
@@ -50,29 +48,65 @@ defmodule Day4 do
     case board[:lookup][num] do
       nil ->
         board
-        |> Map.update!(:total_moves, fn x -> x + 1 end)
+        |> Map.update!(:total_draws, fn x -> x + 1 end)
         |> Map.update!(:draws, fn x -> [num | x] end)
 
       %{r: r, c: c} ->
         new_r = board[:r] |> Map.update!(r, fn x -> [num | x] end)
-        new_c = board[:r] |> Map.update!(c, fn x -> [num | x] end)
+        new_c = board[:c] |> Map.update!(c, fn x -> [num | x] end)
 
         board
         |> Map.update!(:r, fn _ -> new_r end)
         |> Map.update!(:c, fn _ -> new_c end)
-        |> Map.update!(:total_moves, fn x -> x + 1 end)
+        |> Map.update!(:total_draws, fn x -> x + 1 end)
         |> Map.update!(:draws, fn x -> [num | x] end)
+        |> Map.update!(:hits, fn x -> [num | x] end)
+        |> Map.update!(:sum, fn x -> x - num end)
+        |> check_completeness
     end
   end
 
-  # def solve_part1 do
-  #   input = get_input()
-  #   process_part1(input, 0)
-  # end
+  def check_completeness(board) do
+    case board[:r] |> Enum.find(fn ({_k,v}) -> length(v) == 5 end) do
+      nil -> board
+      _ -> board |> Map.update!(:completed, fn _ -> true end)
+    end
+  end
 
-  # def process_part1([a | [b | _c] = x], count) when b > a do
-  #   process_part1(x, count + 1)
-  # end
+  def run(%{completed: true} = board, _draws) do
+    board
+  end
+  def run(%{completed: false} = board, [num | draws]) do
+    board = board |> draw(num)
+    run(board, draws)
+  end
+  def run(%{completed: false} = board, []) do
+    board
+  end
+
+  def solve_part1 do
+    {draws, boards} = get_input()
+
+    picked_board = boards
+    |> Enum.map(fn board -> run(board, draws) end)
+    |> fastest_board
+
+    IO.puts("picked #{inspect picked_board}")
+    IO.puts("result : #{picked_board[:sum] * hd(picked_board[:draws])}")
+    # picked_board
+
+    d = boards
+    |> Enum.map(fn board -> run(board, draws) end)
+    # |> Enum.map(fn x -> x[:total_draws] end )
+    |> Enum.sort_by(fn x -> x[:total_draws] end, :asc)
+
+    IO.puts(inspect d)
+    d
+  end
+
+  def fastest_board(boards) do
+    boards |> Enum.min_by(fn board -> board[:total_draws] end)
+  end
 
   # def solve_part2 do
   #   input = get_input()
@@ -84,25 +118,3 @@ defmodule Day4 do
   # end
 
 end
-
-
-# %{
-#   lookup: %{
-#     6: %{r: 0, c: 0},
-#     10: %{r: 0, c: 3}
-#   },
-#   r: %{
-#     0: [],
-#     1: [],
-#     2: [],
-#     3: [],
-#     4: []
-#   },
-#   c: %{
-#     0: [],
-#     1: [],
-#     2: [],
-#     3: [],
-#     4: []
-#   }
-# }
