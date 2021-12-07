@@ -33,6 +33,7 @@ defmodule Day4 do
     end)
 
     %{
+      input: board,
       lookup: row_lookup,
       r: %{ 0 => [], 1 => [], 2 => [], 3 => [], 4 => []},
       c: %{ 0 => [], 1 => [], 2 => [], 3 => [], 4 => []},
@@ -62,12 +63,13 @@ defmodule Day4 do
         |> Map.update!(:draws, fn x -> [num | x] end)
         |> Map.update!(:hits, fn x -> [num | x] end)
         |> Map.update!(:sum, fn x -> x - num end)
-        |> check_completeness
+        |> check_completeness(:r)
+        |> check_completeness(:c)
     end
   end
 
-  def check_completeness(board) do
-    case board[:r] |> Enum.find(fn ({_k,v}) -> length(v) == 5 end) do
+  def check_completeness(board, key) do
+    case board[key] |> Enum.find(fn ({_k,v}) -> length(v) == 5 end) do
       nil -> board
       _ -> board |> Map.update!(:completed, fn _ -> true end)
     end
@@ -77,8 +79,8 @@ defmodule Day4 do
     board
   end
   def run(%{completed: false} = board, [num | draws]) do
-    board = board |> draw(num)
-    run(board, draws)
+    next_board = board |> draw(num)
+    run(next_board, draws)
   end
   def run(%{completed: false} = board, []) do
     board
@@ -89,32 +91,9 @@ defmodule Day4 do
 
     picked_board = boards
     |> Enum.map(fn board -> run(board, draws) end)
-    |> fastest_board
+    |> Enum.min_by(fn board -> board[:total_draws] end)
 
     IO.puts("picked #{inspect picked_board}")
     IO.puts("result : #{picked_board[:sum] * hd(picked_board[:draws])}")
-    # picked_board
-
-    d = boards
-    |> Enum.map(fn board -> run(board, draws) end)
-    # |> Enum.map(fn x -> x[:total_draws] end )
-    |> Enum.sort_by(fn x -> x[:total_draws] end, :asc)
-
-    IO.puts(inspect d)
-    d
   end
-
-  def fastest_board(boards) do
-    boards |> Enum.min_by(fn board -> board[:total_draws] end)
-  end
-
-  # def solve_part2 do
-  #   input = get_input()
-  #   process_part2(input, 3, 0)
-  # end
-
-  # def process_part2(x, window, count) when length(x) <= window do
-  #   IO.puts("increment = #{count}")
-  # end
-
 end
