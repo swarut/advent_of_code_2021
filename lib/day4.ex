@@ -96,4 +96,15 @@ defmodule Day4 do
     IO.puts("picked #{inspect picked_board}")
     IO.puts("result : #{picked_board[:sum] * hd(picked_board[:draws])}")
   end
+
+  def solve_part2 do
+    {draws, boards} = get_input()
+
+    picked_board = boards
+    |> Enum.map(fn board -> run(board, draws) end)
+    |> Enum.max_by(fn board -> board[:total_draws] end)
+
+    IO.puts("picked #{inspect picked_board}")
+    IO.puts("result : #{picked_board[:sum] * hd(picked_board[:draws])}")
+  end
 end
